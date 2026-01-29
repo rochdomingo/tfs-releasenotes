@@ -1,0 +1,6 @@
+{
+  "base_url": "https://tfs.deltek.com/tfs/Deltek",
+  "pat": "YOUR-TFS-PERSONAL-ACCESS-TOKEN-HERE",
+  "default_organization": "Deltek",
+  "default_project": "Cobra"
+}

@@ -1,0 +1,23 @@
+# TFS Configuration (contains sensitive PAT)
+tfs_config.json
+
+# Exports directory
+exports/
+workitems/
+
+# Generated release notes
+release_notes_*.md
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+*.log
