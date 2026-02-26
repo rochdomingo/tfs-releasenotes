@@ -232,7 +232,7 @@ This tool was developed for internal use. If you'd like to suggest improvements:
 For issues or questions:
 - Check the [Changelog](CHANGELOG.md) for recent fixes
 - Review error messages in browser console (F12)
-- Contact the development team with specific error details
+- Contact the Web Innovations Team with specific error details
 
 ## Credits
 
@@ -252,4 +252,4 @@ Internal use only. All rights reserved.
 
 **Version**: 1.0.0
 **Last Updated**: February 2026
-**Maintained by**: Development Team
+**Maintained by**: Web Innovations Team
