@@ -24,3 +24,16 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.log
+*.backup
+
+# Generated PDFs
+*.pdf
+
+# Screenshots and images
+*.png
+*.jpg
+*.jpeg
+
+# Downloaded archives
+*.zip
+*.tar.gz
