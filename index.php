@@ -64,7 +64,7 @@
                 <div class="form-group">
                     <label for="featuresQueryId">Features Query ID:</label>
                     <input type="text" id="featuresQueryId" name="featuresQueryId" placeholder="Enter TFS Query GUID for Features">
-                    <small style="color: #666; display: block; margin-top: 5px;">Query should return Feature work items</small>
+                    <small style="color: #666; display: block; margin-top: 5px;">Query should return Feature or Product Backlog Item work items</small>
                 </div>
                 <div class="form-group">
                     <label for="bugsQueryId">Bugs Query ID:</label>
@@ -107,7 +107,7 @@
                 </div>
 
                 <div class="filter-preset">
-                    <strong>Default Filters:</strong> Work Item Type = Feature
+                    <strong>Default Filters:</strong> Work Item Type = Feature OR Product Backlog Item
                 </div>
 
                 <button onclick="toggleAdvancedFilters('features')" class="btn btn-secondary">Advanced Filters</button>
@@ -117,6 +117,16 @@
 
                     <div style="background: #e8f4f8; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 13px;">
                         <strong>💡 Tip:</strong> All filters (except Work Item Type) apply to descendant items up to 3 levels deep. Items with descendants will show a count of matching items.
+                    </div>
+
+                    <div class="filter-row">
+                        <input type="checkbox" id="enableTypeFeatures" onchange="toggleFilterInput('typeFeatures')">
+                        <label for="enableTypeFeatures">Work Item Type:</label>
+                        <select id="filterTypeFeatures" disabled>
+                            <option value="all">All (Feature & PBI)</option>
+                            <option value="Feature">Feature only</option>
+                            <option value="Product Backlog Item">Product Backlog Item only</option>
+                        </select>
                     </div>
 
                     <div class="filter-row">
@@ -442,10 +452,16 @@
         function applyFilters(section) {
             if (section === 'features') {
                 filteredFeatures = workitemsData.filter(item => {
-                    // Must be a Feature
-                    if (item.type !== 'Feature') return false;
+                    // Must be a Feature or Product Backlog Item
+                    if (item.type !== 'Feature' && item.type !== 'Product Backlog Item') return false;
 
                     // Apply advanced filters if enabled
+                    // Work Item Type filter
+                    if (document.getElementById('enableTypeFeatures')?.checked) {
+                        const typeValue = document.getElementById('filterTypeFeatures').value;
+                        if (typeValue !== 'all' && item.type !== typeValue) return false;
+                    }
+
                     if (document.getElementById('enableEditingStatusFeatures')?.checked) {
                         const value = document.getElementById('filterEditingStatusFeatures').value.trim();
                         if (value && item.editingStatus !== value) return false;

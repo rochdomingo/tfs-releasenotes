@@ -391,8 +391,8 @@ try {
         $workItemType = $item['fields']['System.WorkItemType'] ?? '';
         $workItemId = $item['id'];
 
-        if ($workItemType === 'Feature') {
-            $itemsToFetch[] = ['id' => $workItemId, 'depth' => $hierarchyDepth, 'type' => 'Feature'];
+        if ($workItemType === 'Feature' || $workItemType === 'Product Backlog Item') {
+            $itemsToFetch[] = ['id' => $workItemId, 'depth' => $hierarchyDepth, 'type' => $workItemType];
         } elseif ($workItemType === 'Bug' || $workItemType === 'Issue' || $workItemType === 'Defect') {
             $itemsToFetch[] = ['id' => $workItemId, 'depth' => 1, 'type' => $workItemType];
         }
@@ -409,10 +409,14 @@ try {
     foreach ($allWorkItems as $item) {
         $fields = $item['fields'];
 
+        // Determine work item type for field mapping
+        $workItemType = $fields['System.WorkItemType'] ?? 'Unknown';
+        $isPBI = ($workItemType === 'Product Backlog Item');
+
         // Extract all fields for maximum flexibility
         $workItem = [
             'id' => $item['id'],
-            'type' => $fields['System.WorkItemType'] ?? 'Unknown',
+            'type' => $workItemType,
             'title' => $fields['System.Title'] ?? 'No Title',
             'state' => $fields['System.State'] ?? 'Unknown',
             'assignedTo' => isset($fields['System.AssignedTo']) ? $fields['System.AssignedTo']['displayName'] : null,
@@ -425,18 +429,18 @@ try {
             'severity' => $fields['Microsoft.VSTS.Common.Severity'] ?? null,
             'tags' => !empty($fields['System.Tags']) ? explode('; ', $fields['System.Tags']) : [],
             'url' => $item['url'] ?? '',
-            // Custom fields for advanced filtering (update field names as needed)
-            'editingStatus' => $fields['Deltek.EditStatus'] ?? null,
+            // Custom fields for advanced filtering - PBI vs Feature specific
+            'editingStatus' => $isPBI ? ($fields['Deltek.PBI.EditStatus'] ?? null) : ($fields['Deltek.EditStatus'] ?? null),
             'isMustHave' => ($fields['Deltek.IsMustHave'] ?? null) === 'Yes' ? true : false,
             'disclose' => $fields['Deltek.DiscloseToClients'] ?? null,
-            // Fields for release notes generation (match generate_release_notes.php expectations)
+            // Fields for release notes generation - PBI vs Feature specific
             'DiscloseToClients' => $fields['Deltek.DiscloseToClients'] ?? 'No',
             'hasSpawnedTag' => !empty($fields['System.Tags']) && (stripos($fields['System.Tags'], 'Spawned') !== false || stripos($fields['System.Tags'], 'Spawns') !== false),
             'relNotesTitle' => $fields['Deltek.RelNotesTitle'] ?? $fields['System.Title'] ?? 'No Title',
-            'relNotesDescription' => $fields['Deltek.RelNotesDescription'] ?? null,
+            'relNotesDescription' => $isPBI ? ($fields['Deltek.PBI.RelNotesDescription'] ?? null) : ($fields['Deltek.RelNotesDescription'] ?? null),
             'acceptanceCriteria' => $fields['Microsoft.VSTS.Common.AcceptanceCriteria'] ?? null,
-            // Deployment fields (primarily for bugs)
-            'filesDeployed' => $fields['Deltek.FilesDeployed'] ?? null,
+            // Deployment fields - PBI uses Deltek.FilesChng, bugs use Deltek.FilesDeployed
+            'filesDeployed' => $isPBI ? ($fields['Deltek.FilesChng'] ?? null) : ($fields['Deltek.FilesDeployed'] ?? null),
             // Store all raw fields for custom field access
             'allFields' => $fields,
             // Query source metadata to indicate which query this came from
