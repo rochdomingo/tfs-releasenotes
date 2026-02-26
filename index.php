@@ -566,7 +566,7 @@
                     <span class="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold mr-3">4</span>
                     Review and Edit Release Notes
                 </h2>
-                <p class="text-sm text-gray-600 mt-2">Edit the content below, then click "Convert & Download Markdown" to export.</p>
+                <p class="text-sm text-gray-600 mt-2">Edit the content below, then download as Markdown or PDF.</p>
             </div>
             <div class="p-6">
                 <div class="mb-6">
@@ -574,7 +574,8 @@
                 </div>
 
                 <div class="flex gap-4 flex-wrap">
-                    <button onclick="convertAndDownload()" class="btn btn-primary">📥 Convert & Download Markdown</button>
+                    <button onclick="convertAndDownload()" class="btn btn-primary">📥 Download Markdown</button>
+                    <button onclick="convertAndDownloadPDF()" class="btn btn-success">📄 Download PDF</button>
                     <button onclick="hideEditor()" class="btn btn-secondary">Cancel</button>
                 </div>
             </div>
@@ -586,6 +587,9 @@
 
     <!-- Turndown for HTML to Markdown conversion -->
     <script src="https://unpkg.com/turndown/dist/turndown.js"></script>
+
+    <!-- html2pdf.js for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <script>
         let workitemsData = [];
@@ -1316,6 +1320,83 @@
             } catch (error) {
                 document.getElementById('exportStatus').innerHTML = `<div class="error">Error converting to Markdown: ${error.message}</div>`;
                 console.error('Conversion error:', error);
+            }
+        }
+
+        // Convert HTML to PDF and download
+        function convertAndDownloadPDF() {
+            try {
+                // Get content from TinyMCE
+                const htmlContent = tinymce.get('releaseNotesEditor').getContent();
+
+                // Create a clean wrapper for PDF
+                const wrapper = document.createElement('div');
+                wrapper.style.cssText = `
+                    max-width: 800px;
+                    margin: 0 auto;
+                    padding: 40px;
+                    font-family: 'Arial', 'Helvetica', sans-serif;
+                    font-size: 12px;
+                    line-height: 1.6;
+                    color: #000;
+                    background: #fff;
+                `;
+
+                // Add content with some style cleanup
+                wrapper.innerHTML = htmlContent;
+
+                // Create filename with timestamp
+                const timestamp = new Date().toISOString().split('T')[0];
+                const filename = window.currentReleaseFilename
+                    ? window.currentReleaseFilename.replace('.md', '.pdf')
+                    : `release_notes_${timestamp}.pdf`;
+
+                // Configure html2pdf options - simplified for better compatibility
+                const opt = {
+                    margin: [10, 10, 10, 10],
+                    filename: filename,
+                    image: {
+                        type: 'jpeg',
+                        quality: 0.95
+                    },
+                    html2canvas: {
+                        scale: 2,
+                        useCORS: true,
+                        letterRendering: true,
+                        scrollY: 0,
+                        scrollX: 0
+                    },
+                    jsPDF: {
+                        unit: 'mm',
+                        format: 'a4',
+                        orientation: 'portrait'
+                    },
+                    pagebreak: {
+                        mode: ['avoid-all', 'css', 'legacy'],
+                        avoid: ['img', 'table', 'tr']
+                    }
+                };
+
+                // Show loading message
+                document.getElementById('exportStatus').innerHTML = '<div class="loading">⏳ Generating PDF... This may take a moment.</div>';
+
+                // Generate PDF
+                html2pdf().set(opt).from(wrapper).save().then(() => {
+                    // Show success message
+                    document.getElementById('exportStatus').innerHTML = '<div class="success">✅ PDF file downloaded successfully!</div>';
+
+                    // Hide editor after a short delay
+                    setTimeout(() => {
+                        hideEditor();
+                    }, 2000);
+                }).catch(error => {
+                    document.getElementById('exportStatus').innerHTML = `<div class="error">Error generating PDF: ${error.message}</div>`;
+                    console.error('PDF generation error:', error);
+                });
+
+            } catch (error) {
+                document.getElementById('exportStatus').innerHTML = `<div class="error">Error generating PDF: ${error.message}</div>`;
+                console.error('PDF generation error:', error);
             }
         }
     </script>
