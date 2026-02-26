@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TFS Release Notes Generator - Documentation</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3C50E0',
+                        secondary: '#80CAEE',
+                        success: '#10B981',
+                        warning: '#F59E0B',
+                        danger: '#EF4444',
+                        dark: '#1C2434',
+                        'body-bg': '#F1F5F9'
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        html {
+            scroll-behavior: smooth;
+        }
+        .nav-link {
+            transition: all 0.2s;
+        }
+        .nav-link:hover {
+            background-color: rgba(60, 80, 224, 0.1);
+            color: #3C50E0;
+        }
+        .nav-link.active {
+            background-color: rgba(60, 80, 224, 0.1);
+            color: #3C50E0;
+            font-weight: 600;
+        }
+        .section-content h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1C2434;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+        .section-content h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #374151;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        .section-content ul {
+            list-style: disc;
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .section-content li {
+            margin-bottom: 0.5rem;
+            line-height: 1.6;
+        }
+        .section-content code {
+            background: #f3f4f6;
+            padding: 0.125rem 0.375rem;
+            border-radius: 0.25rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            color: #dc2626;
+        }
+        .section-content pre {
+            background: #1f2937;
+            color: #f3f4f6;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+        .section-content pre code {
+            background: transparent;
+            color: inherit;
+            padding: 0;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        .feature-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            transition: all 0.2s;
+        }
+        .feature-card:hover {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-color: #3C50E0;
+        }
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            background: rgba(60, 80, 224, 0.1);
+            color: #3C50E0;
+            border-radius: 9999px;
+            font-weight: 700;
+            margin-right: 0.75rem;
+        }
+    </style>
+</head>
+<body class="bg-body-bg">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <h1 class="text-2xl font-bold text-dark">TFS Release Notes Generator</h1>
+                    <span class="ml-3 px-2 py-1 text-xs font-medium bg-primary/10 text-primary rounded">Documentation</span>
+                </div>
+                <a href="index.php" class="inline-flex items-center px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                    ← Back to App
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="flex gap-8">
+            <!-- Sidebar Navigation -->
+            <aside class="w-64 flex-shrink-0 sticky top-24 h-fit">
+                <nav class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                    <div class="text-sm font-semibold text-gray-500 uppercase mb-3">Contents</div>
+                    <ul class="space-y-1">
+                        <li><a href="#overview" class="nav-link block px-3 py-2 rounded text-sm">Overview</a></li>
+                        <li><a href="#features" class="nav-link block px-3 py-2 rounded text-sm">Features</a></li>
+                        <li><a href="#installation" class="nav-link block px-3 py-2 rounded text-sm">Installation</a></li>
+                        <li><a href="#usage" class="nav-link block px-3 py-2 rounded text-sm">Usage Guide</a></li>
+                        <li><a href="#advanced" class="nav-link block px-3 py-2 rounded text-sm">Advanced Features</a></li>
+                        <li><a href="#troubleshooting" class="nav-link block px-3 py-2 rounded text-sm">Troubleshooting</a></li>
+                        <li><a href="#changelog" class="nav-link block px-3 py-2 rounded text-sm">Changelog</a></li>
+                    </ul>
+                </nav>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="flex-1 min-w-0">
+                <!-- Overview Section -->
+                <section id="overview" class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 mb-6">
+                    <h2 class="text-3xl font-bold text-dark mb-4">Overview</h2>
+                    <div class="section-content text-gray-700">
+                        <p class="mb-4">The TFS Release Notes Generator streamlines the process of creating release documentation by fetching work items directly from Azure DevOps queries, allowing team members to review, filter, and export release notes in Markdown or PDF format.</p>
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+                            <div class="font-semibold text-blue-900 mb-2">Version 1.0.0</div>
+                            <div class="text-sm text-blue-800">A modern, web-based tool for professional release note generation with WYSIWYG editing and multiple export formats.</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Features Section -->
+                <section id="features" class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 mb-6">
+                    <h2 class="text-3xl font-bold text-dark mb-6">Features</h2>
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <div class="text-2xl mb-3">🎯</div>
+                            <h4 class="font-semibold text-dark mb-2">Work Item Management</h4>
+                            <ul class="text-sm text-gray-600 space-y-1">
+                                <li>Dual Query Support</li>
+                                <li>Configurable Hierarchy (1-3 levels)</li>
+                                <li>Features & PBIs</li>
+                                <li>Changeset Tracking</li>
+                            </ul>
+                        </div>
+                        <div class="feature-card">
+                            <div class="text-2xl mb-3">🎨</div>
+                            <h4 class="font-semibold text-dark mb-2">Modern UI</h4>
+                            <ul class="text-sm text-gray-600 space-y-1">
+                                <li>TailAdmin Design</li>
+                                <li>Card-Based Layout</li>
+                                <li>Tabbed Interface</li>
+                                <li>Responsive Design</li>
+                            </ul>
+                        </div>
+                        <div class="feature-card">
+                            <div class="text-2xl mb-3">✏️</div>
+                            <h4 class="font-semibold text-dark mb-2">WYSIWYG Editor</h4>
+                            <ul class="text-sm text-gray-600 space-y-1">
+                                <li>TinyMCE Integration</li>
+                                <li>Live Preview</li>
+                                <li>Image Support</li>
+                                <li>Rich Formatting</li>
+                            </ul>
+                        </div>
+                        <div class="feature-card">
+                            <div class="text-2xl mb-3">📥</div>
+                            <h4 class="font-semibold text-dark mb-2">Export Options</h4>
+                            <ul class="text-sm text-gray-600 space-y-1">
+                                <li>Markdown Export</li>
+                                <li>PDF Export (A4)</li>
+                                <li>JSON for AI</li>
+                                <li>Auto-naming</li>
+                            </ul>
+                        </div>
+                        <div class="feature-card">
+                            <div class="text-2xl mb-3">🔍</div>
+                            <h4 class="font-semibold text-dark mb-2">Advanced Filtering</h4>
+                            <ul class="text-sm text-gray-600 space-y-1">
+                                <li>Type Filtering</li>
+                                <li>State & Tag Filters</li>
+                                <li>Keyword Exclusion</li>
+                                <li>Descendant Filtering</li>
+                            </ul>
+                        </div>
+                        <div class="feature-card">
+                            <div class="text-2xl mb-3">⚡</div>
+                            <h4 class="font-semibold text-dark mb-2">Performance</h4>
+                            <ul class="text-sm text-gray-600 space-y-1">
+                                <li>Parallel Fetching</li>
+                                <li>Progress Tracking</li>
+                                <li>Error Handling</li>
+                                <li>Fast Filtering</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Installation Section -->
+                <section id="installation" class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 mb-6">
+                    <h2 class="text-3xl font-bold text-dark mb-4">Installation</h2>
+                    <div class="section-content text-gray-700">
+                        <h3>Prerequisites</h3>
+                        <ul>
+                            <li><strong>Web Server:</strong> Apache with PHP support (XAMPP, WAMP, etc.)</li>
+                            <li><strong>PHP:</strong> Version 7.0 or higher</li>
+                            <li><strong>cURL Extension:</strong> For TFS API communication</li>
+                            <li><strong>Modern Browser:</strong> Chrome 90+, Firefox 88+, Edge 90+, Safari 14+</li>
+                            <li><strong>Azure DevOps Access:</strong> Valid PAT token with read permissions</li>
+                        </ul>
+
+                        <h3>Setup Steps</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-start">
+                                <span class="step-number">1</span>
+                                <div class="flex-1">
+                                    <h4 class="mb-2">Clone the Repository</h4>
+                                    <pre>git clone &lt;repository-url&gt; /path/to/webroot/tfs-releasenotes</pre>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="step-number">2</span>
+                                <div class="flex-1">
+                                    <h4 class="mb-2">Configure TFS Connection</h4>
+                                    <p class="mb-2">Create a <code>tfs_config.json</code> file:</p>
+                                    <pre>{
+  "pat": "your-personal-access-token",
+  "organization": "your-org-name",
+  "project": "your-project-name",
+  "apiVersion": "7.0"
+}</pre>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="step-number">3</span>
+                                <div class="flex-1">
+                                    <h4 class="mb-2">Set Permissions</h4>
+                                    <pre>chmod 644 tfs_config.json
+chmod 755 exports/</pre>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="step-number">4</span>
+                                <div class="flex-1">
+                                    <h4 class="mb-2">Access the Application</h4>
+                                    <p>Navigate to <code>http://localhost/tfs-releasenotes/</code> in your browser</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Usage Guide Section -->
+                <section id="usage" class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 mb-6">
+                    <h2 class="text-3xl font-bold text-dark mb-4">Usage Guide</h2>
+                    <div class="section-content text-gray-700">
+                        <h3>Step 1: Fetch Work Items</h3>
+                        <ol class="list-decimal ml-6 mb-4">
+                            <li>Enter your <strong>Features Query ID</strong> (GUID from Azure DevOps)</li>
+                            <li>Enter your <strong>Bugs Query ID</strong> (optional)</li>
+                            <li>Select <strong>Hierarchy Depth</strong> (1-3 levels)</li>
+                            <li>Click <strong>"Fetch Work Items"</strong></li>
+                        </ol>
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                            <strong class="text-yellow-900">💡 Tips:</strong>
+                            <ul class="text-sm text-yellow-800 mt-2">
+                                <li>Query IDs can be found in the URL when viewing a query in Azure DevOps</li>
+                                <li>Lower hierarchy depth = faster fetching</li>
+                                <li>You can provide one or both query IDs</li>
+                            </ul>
+                        </div>
+
+                        <h3>Step 2: Review and Filter</h3>
+                        <h4>Features Tab</h4>
+                        <ul>
+                            <li>View all Features and PBIs returned from the query</li>
+                            <li>Apply <strong>Advanced Filters</strong>:
+                                <ul class="ml-4 list-disc">
+                                    <li>Work Item Type (Feature vs PBI)</li>
+                                    <li>Editing Status</li>
+                                    <li>State (Released, Done, etc.)</li>
+                                    <li>Tags (include/exclude)</li>
+                                    <li>Keywords (exclude SPIKE, etc.)</li>
+                                    <li>Disclose to Clients</li>
+                                </ul>
+                            </li>
+                            <li>Expand work items to see child PBIs, Tasks, and changesets</li>
+                            <li>Check/uncheck items to include in export</li>
+                        </ul>
+
+                        <h4>Bugs Tab</h4>
+                        <ul>
+                            <li>View all Bugs/Issues returned from the query</li>
+                            <li>Apply bug-specific filters (Type, State, Priority, Tags)</li>
+                            <li>Review Files Deployed information</li>
+                            <li>Select bugs to include in release notes</li>
+                        </ul>
+
+                        <h3>Step 3: Export or Generate</h3>
+                        <ol class="list-decimal ml-6 mb-4">
+                            <li>Enter <strong>Release Version</strong> (e.g., 8.5.0)</li>
+                            <li>Select <strong>Release Date</strong></li>
+                            <li>Choose export option:
+                                <ul class="ml-4 list-disc">
+                                    <li><strong>📝 Generate Release Notes:</strong> Opens WYSIWYG editor</li>
+                                    <li><strong>📥 Export for Claude Code:</strong> Downloads JSON</li>
+                                </ul>
+                            </li>
+                        </ol>
+
+                        <h3>Step 4: Review and Edit (WYSIWYG)</h3>
+                        <ol class="list-decimal ml-6">
+                            <li>Review the generated release notes in the editor</li>
+                            <li>Make any necessary edits (modify text, add/remove sections, adjust formatting)</li>
+                            <li>Choose export format:
+                                <ul class="ml-4 list-disc">
+                                    <li><strong>📥 Download Markdown:</strong> .md file</li>
+                                    <li><strong>📄 Download PDF:</strong> Professional PDF document</li>
+                                </ul>
+                            </li>
+                        </ol>
+                    </div>
+                </section>
+
+                <!-- Advanced Features Section -->
+                <section id="advanced" class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 mb-6">
+                    <h2 class="text-3xl font-bold text-dark mb-4">Advanced Features</h2>
+                    <div class="section-content text-gray-700">
+                        <h3>Image Proxy</h3>
+                        <p>TFS images require authentication. The tool automatically proxies images through <code>image_proxy.php</code> to display them in the editor, then restores original URLs in the final export.</p>
+
+                        <h3>Changeset Integration</h3>
+                        <p>View code changes associated with work items:</p>
+                        <ul>
+                            <li>Changeset IDs displayed for child items</li>
+                            <li>Links to Azure DevOps changesets</li>
+                            <li>File change summaries</li>
+                        </ul>
+
+                        <h3>Descendant Filtering</h3>
+                        <p>Filters apply not just to parent items but also to descendants:</p>
+                        <ul>
+                            <li><strong>Level 1:</strong> Direct children (PBIs, Tasks)</li>
+                            <li><strong>Level 2:</strong> Grandchildren (sub-tasks)</li>
+                            <li><strong>Level 3:</strong> Great-grandchildren</li>
+                            <li>Items show count of matching descendants</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- Troubleshooting Section -->
+                <section id="troubleshooting" class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 mb-6">
+                    <h2 class="text-3xl font-bold text-dark mb-4">Troubleshooting</h2>
+                    <div class="section-content text-gray-700">
+                        <h3>No Work Items Returned</h3>
+                        <ul>
+                            <li>Verify query IDs are correct GUIDs</li>
+                            <li>Check PAT token has read permissions</li>
+                            <li>Ensure queries return Feature/PBI or Bug work items</li>
+                            <li>Check browser console (F12) for API errors</li>
+                        </ul>
+
+                        <h3>Images Not Displaying</h3>
+                        <ul>
+                            <li>Verify PAT token is valid</li>
+                            <li>Check <code>image_proxy.php</code> has correct permissions</li>
+                            <li>Ensure TFS URLs are accessible from server</li>
+                        </ul>
+
+                        <h3>PDF Generation Issues</h3>
+                        <ul>
+                            <li>Allow popups in browser</li>
+                            <li>Check file downloads aren't blocked</li>
+                            <li>Large documents may take 30-60 seconds</li>
+                            <li>Try reducing hierarchy depth if timeout occurs</li>
+                        </ul>
+
+                        <h3>Performance Issues</h3>
+                        <ul>
+                            <li>Reduce hierarchy depth (use Level 1 instead of 3)</li>
+                            <li>Filter results before generating release notes</li>
+                            <li>Use more specific queries in Azure DevOps</li>
+                            <li>Clear browser cache and refresh</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- Changelog Section -->
+                <section id="changelog" class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 mb-6">
+                    <h2 class="text-3xl font-bold text-dark mb-4">Changelog</h2>
+                    <div class="section-content text-gray-700">
+                        <h3>Version 1.0.0 - February 26, 2026</h3>
+                        <h4>Added</h4>
+                        <ul>
+                            <li><strong>PDF Export:</strong> Client-side PDF generation with html2pdf.js</li>
+                            <li><strong>Modern UI:</strong> Tailwind CSS redesign with TailAdmin styling</li>
+                            <li><strong>PBI Support:</strong> Full Product Backlog Item support with field mapping</li>
+                            <li><strong>Image Proxy:</strong> Authenticated TFS image display system</li>
+                        </ul>
+                        <h4>Changed</h4>
+                        <ul>
+                            <li>Replaced old styles.css with Tailwind CSS</li>
+                            <li>Updated all sections to card-based layout</li>
+                            <li>Improved export workflow with multiple format options</li>
+                        </ul>
+                        <h4>Fixed</h4>
+                        <ul>
+                            <li>PBI queries returning 0 results</li>
+                            <li>Image display in WYSIWYG editor</li>
+                            <li>Layout consistency across all steps</li>
+                        </ul>
+
+                        <h3>Version 0.2.0 - February 25, 2026</h3>
+                        <ul>
+                            <li>WYSIWYG editor integration (TinyMCE)</li>
+                            <li>HTML to Markdown conversion</li>
+                            <li>Performance optimizations with configurable hierarchy depth</li>
+                        </ul>
+
+                        <h3>Version 0.1.0 - February 20, 2026</h3>
+                        <ul>
+                            <li>Initial release</li>
+                            <li>Core features: fetch, filter, export</li>
+                            <li>Support for Features and Bugs</li>
+                            <li>Advanced filtering system</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- Security Notice -->
+                <div class="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
+                    <h3 class="text-lg font-semibold text-red-900 mb-2">🔒 Security Notes</h3>
+                    <ul class="text-sm text-red-800 space-y-1">
+                        <li><strong>Never commit</strong> <code>tfs_config.json</code> to version control</li>
+                        <li>PAT tokens should have <strong>read-only</strong> permissions</li>
+                        <li>Use HTTPS in production environments</li>
+                        <li>Regularly rotate PAT tokens</li>
+                        <li>Review generated exports before sharing externally</li>
+                    </ul>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between text-sm text-gray-600">
+                <div>
+                    <strong>Version 1.0.0</strong> • Last Updated: February 2026
+                </div>
+                <div>
+                    Built with <span class="text-red-500">♥</span> by Development Team
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Smooth scroll and active nav highlighting
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href').substring(1);
+                const targetElement = document.getElementById(targetId);
+                
+                if (targetElement) {
+                    const offset = 100;
+                    const elementPosition = targetElement.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - offset;
+
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: 'smooth'
+                    });
+
+                    // Update active state
+                    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+                }
+            });
+        });
+
+        // Update active nav on scroll
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const id = entry.target.getAttribute('id');
+                    document.querySelectorAll('.nav-link').forEach(link => {
+                        link.classList.remove('active');
+                        if (link.getAttribute('href') === `#${id}`) {
+                            link.classList.add('active');
+                        }
+                    });
+                }
+            });
+        }, { threshold: 0.3 });
+
+        document.querySelectorAll('section[id]').forEach(section => {
+            observer.observe(section);
+        });
+    </script>
+</body>
+</html>
