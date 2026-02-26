@@ -4,27 +4,60 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TFS Release Notes Generator</title>
-    <link rel="stylesheet" href="styles.css">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3C50E0',
+                        secondary: '#80CAEE',
+                        success: '#10B981',
+                        warning: '#F59E0B',
+                        'warning-dark': '#856404',
+                        danger: '#EF4444',
+                        dark: '#1C2434',
+                        'body-bg': '#F1F5F9'
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
+        /* TailAdmin-inspired custom styles */
         .tabs {
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #ddd;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid #e5e7eb;
         }
         .tab {
-            padding: 10px 20px;
+            padding: 0.75rem 1.5rem;
             cursor: pointer;
-            background: #f0f0f0;
-            border: 1px solid #ddd;
-            border-bottom: none;
-            border-radius: 5px 5px 0 0;
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-bottom: 0;
+            border-radius: 0.5rem 0.5rem 0 0;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #6b7280;
+            transition: all 0.2s;
+        }
+        .tab:hover {
+            background-color: #f3f4f6;
         }
         .tab.active {
-            background: white;
-            border-bottom: 2px solid white;
+            background-color: white;
+            border-color: #3C50E0;
+            color: #3C50E0;
             margin-bottom: -2px;
-            font-weight: bold;
+            font-weight: 600;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
         }
         .tab-content {
             display: none;
@@ -36,258 +69,513 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 1rem;
         }
         .count-badge {
-            background: #070D63;
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            background-color: #3C50E0;
             color: white;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 14px;
         }
         .filter-preset {
-            background: #e8f4f8;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-            font-size: 14px;
+            background-color: #eff6ff;
+            border: 1px solid #bfdbfe;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            color: #1e3a8a;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-group label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+        .form-group input[type="text"],
+        .form-group input[type="date"],
+        .form-group select {
+            width: 100%;
+            padding: 0.625rem 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+        }
+        .form-group input[type="text"]:focus,
+        .form-group input[type="date"]:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #3C50E0;
+            box-shadow: 0 0 0 3px rgba(60, 80, 224, 0.1);
+        }
+        .form-group small {
+            display: block;
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.625rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+        .btn:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+        }
+        .btn-primary {
+            background-color: #3C50E0;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #2a3eb8;
+        }
+        .btn-success {
+            background-color: #10B981;
+            color: white;
+        }
+        .btn-success:hover {
+            background-color: #059669;
+        }
+        .btn-secondary {
+            background-color: #f3f4f6;
+            color: #374151;
+        }
+        .btn-secondary:hover {
+            background-color: #e5e7eb;
+        }
+        .status-message {
+            margin-top: 1rem;
+        }
+        .loading {
+            background-color: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: #1e40af;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+        }
+        .success {
+            background-color: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #15803d;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+        }
+        .error {
+            background-color: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+        }
+        .advanced-filters {
+            background-color: #f9fafb;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            border: 1px solid #e5e7eb;
+            margin-top: 1rem;
+        }
+        .filter-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .filter-row input[type="checkbox"] {
+            width: 1rem;
+            height: 1rem;
+            color: #3C50E0;
+            border-color: #d1d5db;
+            border-radius: 0.25rem;
+        }
+        .filter-row label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+            min-width: 180px;
+        }
+        .filter-row input[type="text"],
+        .filter-row select {
+            flex: 1;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+        }
+        .filter-row input[type="text"]:focus,
+        .filter-row select:focus {
+            outline: none;
+            border-color: #3C50E0;
+            box-shadow: 0 0 0 3px rgba(60, 80, 224, 0.1);
+        }
+        .filter-actions {
+            display: flex;
+            gap: 0.75rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e5e7eb;
+            margin-top: 1rem;
+        }
+        .workitems-count {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 1rem;
+            padding: 0.5rem 1rem;
+            background-color: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 0.5rem;
+            display: inline-block;
+        }
+        .workitems-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+        .workitems-table thead {
+            background-color: #f3f4f6;
+            border-bottom: 2px solid #d1d5db;
+        }
+        .workitems-table th {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #374151;
+        }
+        .workitems-table td {
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            color: #6b7280;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .workitems-table tbody tr:hover {
+            background-color: #f9fafb;
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.625rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .badge-feature {
+            background-color: rgba(60, 80, 224, 0.1);
+            color: #3C50E0;
+        }
+        .badge-product-backlog-item {
+            background-color: rgba(128, 202, 238, 0.2);
+            color: #1d4ed8;
+        }
+        .badge-bug {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        .badge-issue {
+            background-color: #fed7aa;
+            color: #9a3412;
+        }
+        .badge-task {
+            background-color: #dcfce7;
+            color: #166534;
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <h1>TFS Release Notes Generator</h1>
+<body class="bg-body-bg">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <h1 class="text-3xl font-bold text-dark">TFS Release Notes Generator</h1>
+                <div class="flex items-center space-x-2">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary/10 text-primary">
+                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Cobra
+                    </span>
+                </div>
+            </div>
+        </div>
+    </header>
 
-        <div class="card">
-            <h2>Step 1: Fetch Work Items from Queries</h2>
-            <form id="fetchForm">
-                <div class="form-group">
-                    <label for="featuresQueryId">Features Query ID:</label>
-                    <input type="text" id="featuresQueryId" name="featuresQueryId" placeholder="Enter TFS Query GUID for Features">
-                    <small style="color: #666; display: block; margin-top: 5px;">Query should return Feature or Product Backlog Item work items</small>
-                </div>
-                <div class="form-group">
-                    <label for="bugsQueryId">Bugs Query ID:</label>
-                    <input type="text" id="bugsQueryId" name="bugsQueryId" placeholder="Enter TFS Query GUID for Bugs">
-                    <small style="color: #666; display: block; margin-top: 5px;">Query should return Bug/Issue work items</small>
-                </div>
-                <div class="form-group">
-                    <label for="hierarchyDepth">Hierarchy Depth for Features:</label>
-                    <select id="hierarchyDepth" name="hierarchyDepth" style="width: 300px;">
-                        <option value="1">1 Level (Direct children only - fastest)</option>
-                        <option value="2" selected>2 Levels (Recommended)</option>
-                        <option value="3">3 Levels (Full hierarchy - slowest)</option>
-                    </select>
-                    <small style="color: #666; display: block; margin-top: 5px;">Controls how many levels of child items to fetch for features. Lower = faster.</small>
-                </div>
-                <div style="background: #fff3cd; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 13px; border: 1px solid #ffeaa7;">
-                    <strong>Note:</strong> You can provide one or both query IDs. At least one is required.
-                </div>
-                <button type="submit" class="btn btn-primary">Fetch Work Items</button>
-            </form>
-            <div id="fetchStatus" class="status-message"></div>
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Step 1 Card -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-8">
+            <div class="border-b border-gray-200 px-6 py-4">
+                <h2 class="text-xl font-semibold text-dark flex items-center">
+                    <span class="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold mr-3">1</span>
+                    Fetch Work Items from Queries
+                </h2>
+            </div>
+            <div class="p-6">
+                    <form id="fetchForm">
+                        <div class="form-group">
+                            <label for="featuresQueryId">Features Query ID:</label>
+                            <input type="text" id="featuresQueryId" name="featuresQueryId" placeholder="Enter TFS Query GUID for Features">
+                            <small>Query should return Feature or Product Backlog Item work items</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="bugsQueryId">Bugs Query ID:</label>
+                            <input type="text" id="bugsQueryId" name="bugsQueryId" placeholder="Enter TFS Query GUID for Bugs">
+                            <small>Query should return Bug/Issue work items</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="hierarchyDepth">Hierarchy Depth for Features:</label>
+                            <select id="hierarchyDepth" name="hierarchyDepth">
+                                <option value="1">1 Level (Direct children only - fastest)</option>
+                                <option value="2" selected>2 Levels (Recommended)</option>
+                                <option value="3">3 Levels (Full hierarchy - slowest)</option>
+                            </select>
+                            <small>Controls how many levels of child items to fetch for features. Lower = faster.</small>
+                        </div>
+                        <div class="bg-warning/10 border border-warning/30 text-warning-dark px-4 py-3 rounded-lg mb-6">
+                            <strong>Note:</strong> You can provide one or both query IDs. At least one is required.
+                        </div>
+                        <button type="submit" class="btn btn-primary">Fetch Work Items</button>
+                    </form>
+                    <div id="fetchStatus" class="status-message"></div>
+            </div>
         </div>
 
-        <div class="card" id="workitemsSection" style="display: none;">
-            <h2>Step 2: Review and Filter Work Items</h2>
-
-            <div class="tabs">
-                <div class="tab active" onclick="switchTab('features')">
-                    🎯 Features <span id="featuresCount" class="count-badge">0</span>
+        <!-- Step 2 Card -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-8" id="workitemsSection" style="display: none;">
+            <div class="border-b border-gray-200 px-6 py-4">
+                <h2 class="text-xl font-semibold text-dark flex items-center">
+                    <span class="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold mr-3">2</span>
+                    Review and Filter Work Items
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="tabs">
+                    <div class="tab active" onclick="switchTab('features')">
+                        🎯 Features <span id="featuresCount" class="count-badge">0</span>
+                    </div>
+                    <div class="tab" onclick="switchTab('bugs')">
+                        🐛 Bugs <span id="bugsCount" class="count-badge">0</span>
+                    </div>
                 </div>
-                <div class="tab" onclick="switchTab('bugs')">
-                    🐛 Bugs <span id="bugsCount" class="count-badge">0</span>
+
+                <!-- FEATURES TAB -->
+                <div id="featuresTab" class="tab-content active">
+                    <div class="section-header">
+                        <h3>New Features and Enhancements</h3>
+                    </div>
+
+                    <div class="filter-preset">
+                        <strong>Default Filters:</strong> Work Item Type = Feature OR Product Backlog Item
+                    </div>
+
+                    <button onclick="toggleAdvancedFilters('features')" class="btn btn-secondary">Advanced Filters</button>
+
+                    <div id="advancedFiltersFeatures" class="advanced-filters" style="display: none;">
+                        <h3 class="text-lg font-semibold text-dark mb-4">Advanced Filters for Features</h3>
+
+                        <div class="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg mb-4 text-sm">
+                            <strong>💡 Tip:</strong> All filters (except Work Item Type) apply to descendant items up to 3 levels deep. Items with descendants will show a count of matching items.
+                        </div>
+
+                        <div class="filter-row">
+                            <input type="checkbox" id="enableTypeFeatures" onchange="toggleFilterInput('typeFeatures')">
+                            <label for="enableTypeFeatures">Work Item Type:</label>
+                            <select id="filterTypeFeatures" disabled>
+                                <option value="all">All (Feature & PBI)</option>
+                                <option value="Feature">Feature only</option>
+                                <option value="Product Backlog Item">Product Backlog Item only</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-row">
+                            <input type="checkbox" id="enableEditingStatusFeatures" onchange="toggleFilterInput('editingStatusFeatures')">
+                            <label for="enableEditingStatusFeatures">Editing Status:</label>
+                            <input type="text" id="filterEditingStatusFeatures" placeholder="e.g., Final Review Complete" disabled>
+                        </div>
+
+                        <div class="filter-row">
+                            <input type="checkbox" id="enableStateFeatures" onchange="toggleFilterInput('stateFeatures')">
+                            <label for="enableStateFeatures">State (multi-select):</label>
+                            <input type="text" id="filterStateFeatures" placeholder="e.g., Released,Done" disabled>
+                        </div>
+
+                        <div class="filter-row">
+                            <input type="checkbox" id="enableIncludeTagsFeatures" onchange="toggleFilterInput('includeTagsFeatures')">
+                            <label for="enableIncludeTagsFeatures">Include Tags (has ANY of these):</label>
+                            <input type="text" id="filterIncludeTagsFeatures" placeholder="e.g., Must Have, Critical (comma-separated)" disabled>
+                        </div>
+
+                        <div class="filter-row">
+                            <input type="checkbox" id="enableExcludeTagsFeatures" onchange="toggleFilterInput('excludeTagsFeatures')">
+                            <label for="enableExcludeTagsFeatures">Exclude Tags:</label>
+                            <input type="text" id="filterExcludeTagsFeatures" placeholder="e.g., Spawned, Not Ready (comma-separated)" disabled>
+                        </div>
+
+                        <div class="filter-row">
+                            <input type="checkbox" id="enableExcludeKeywordsFeatures" onchange="toggleFilterInput('excludeKeywordsFeatures')">
+                            <label for="enableExcludeKeywordsFeatures">Exclude Keywords (Title/Notes):</label>
+                            <input type="text" id="filterExcludeKeywordsFeatures" placeholder="e.g., Spike, Technical Analysis" disabled>
+                        </div>
+
+                        <div class="filter-row">
+                            <input type="checkbox" id="enableDiscloseFeatures" onchange="toggleFilterInput('discloseFeatures')">
+                            <label for="enableDiscloseFeatures">Disclose to Clients:</label>
+                            <select id="filterDiscloseFeatures" disabled>
+                                <option value="null">Null or not set</option>
+                                <option value="yes">Yes</option>
+                                <option value="no">No</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-actions">
+                            <button onclick="applyFilters('features')" class="btn btn-primary">Apply Filters</button>
+                            <button onclick="clearAdvancedFilters('features')" class="btn btn-secondary">Clear Filters</button>
+                        </div>
+                    </div>
+
+                    <div id="featuresListWrapper" style="margin-top: 20px;">
+                        <div id="featuresList"></div>
+                    </div>
+                </div>
+
+                <!-- BUGS TAB -->
+                <div id="bugsTab" class="tab-content">
+                    <div class="section-header">
+                        <h3>Software Issues Resolved</h3>
+                    </div>
+
+                    <button onclick="toggleAdvancedFilters('bugs')" class="btn btn-secondary">Show Filters</button>
+
+                    <div id="advancedFiltersBugs" class="advanced-filters" style="display: none;">
+                        <h3 class="text-lg font-semibold text-dark mb-4">Filters for Bugs (All filters use AND logic)</h3>
+
+                        <div class="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg mb-4 text-sm">
+                            <strong>💡 Tip:</strong> All filters (except Work Item Type) apply to descendant items up to 3 levels deep. Items with descendants will show a count of matching items.
+                        </div>
+
+                        <div class="filter-row">
+                            <input type="checkbox" id="enableTypeBugs" onchange="toggleFilterInput('typeBugs')">
+                            <label for="enableTypeBugs">Work Item Type:</label>
+                            <input type="text" id="filterTypeBugs" placeholder="e.g., Bug, Issue, Defect" disabled>
+                        </div>
+
+                        <div class="filter-row">
+                            <input type="checkbox" id="enableStateBugs" onchange="toggleFilterInput('stateBugs')">
+                            <label for="enableStateBugs">State (multi-select):</label>
+                            <input type="text" id="filterStateBugs" placeholder="e.g., Resolved,Closed" disabled>
+                        </div>
+
+                        <div class="filter-row">
+                            <input type="checkbox" id="enableDiscloseBugs" onchange="toggleFilterInput('discloseBugs')">
+                            <label for="enableDiscloseBugs">Disclose to Clients:</label>
+                            <select id="filterDiscloseBugs" disabled>
+                                <option value="">All</option>
+                                <option value="yes">Yes</option>
+                                <option value="no">No</option>
+                                <option value="null">Null or not set</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-row">
+                            <input type="checkbox" id="enableIncludeTagsBugs" onchange="toggleFilterInput('includeTagsBugs')">
+                            <label for="enableIncludeTagsBugs">Include Tags (has ANY of these):</label>
+                            <input type="text" id="filterIncludeTagsBugs" placeholder="e.g., Critical, Security (comma-separated)" disabled>
+                        </div>
+
+                        <div class="filter-row">
+                            <input type="checkbox" id="enableExcludeTagsBugs" onchange="toggleFilterInput('excludeTagsBugs')">
+                            <label for="enableExcludeTagsBugs">Exclude Tags:</label>
+                            <input type="text" id="filterExcludeTagsBugs" placeholder="e.g., Spawned, Wont Fix (comma-separated)" disabled>
+                        </div>
+
+                        <div class="filter-row">
+                            <input type="checkbox" id="enablePriorityBugs" onchange="toggleFilterInput('priorityBugs')">
+                            <label for="enablePriorityBugs">Priority:</label>
+                            <select id="filterPriorityBugs" disabled>
+                                <option value="">All Priorities</option>
+                                <option value="1">1 - Critical</option>
+                                <option value="2">2 - High</option>
+                                <option value="3">3 - Medium</option>
+                                <option value="4">4 - Low</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-actions">
+                            <button onclick="applyFilters('bugs')" class="btn btn-primary">Apply Filters</button>
+                            <button onclick="clearAdvancedFilters('bugs')" class="btn btn-secondary">Clear Filters</button>
+                        </div>
+                    </div>
+
+                    <div id="bugsListWrapper" class="mt-5">
+                        <div id="bugsList"></div>
+                    </div>
                 </div>
             </div>
+        </div>
 
-            <!-- FEATURES TAB -->
-            <div id="featuresTab" class="tab-content active">
-                <div class="section-header">
-                    <h3>New Features and Enhancements</h3>
-                </div>
-
-                <div class="filter-preset">
-                    <strong>Default Filters:</strong> Work Item Type = Feature OR Product Backlog Item
-                </div>
-
-                <button onclick="toggleAdvancedFilters('features')" class="btn btn-secondary">Advanced Filters</button>
-
-                <div id="advancedFiltersFeatures" class="advanced-filters" style="display: none;">
-                    <h3>Advanced Filters for Features</h3>
-
-                    <div style="background: #e8f4f8; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 13px;">
-                        <strong>💡 Tip:</strong> All filters (except Work Item Type) apply to descendant items up to 3 levels deep. Items with descendants will show a count of matching items.
-                    </div>
-
-                    <div class="filter-row">
-                        <input type="checkbox" id="enableTypeFeatures" onchange="toggleFilterInput('typeFeatures')">
-                        <label for="enableTypeFeatures">Work Item Type:</label>
-                        <select id="filterTypeFeatures" disabled>
-                            <option value="all">All (Feature & PBI)</option>
-                            <option value="Feature">Feature only</option>
-                            <option value="Product Backlog Item">Product Backlog Item only</option>
-                        </select>
-                    </div>
-
-                    <div class="filter-row">
-                        <input type="checkbox" id="enableEditingStatusFeatures" onchange="toggleFilterInput('editingStatusFeatures')">
-                        <label for="enableEditingStatusFeatures">Editing Status:</label>
-                        <input type="text" id="filterEditingStatusFeatures" placeholder="e.g., Final Review Complete" disabled>
-                    </div>
-
-                    <div class="filter-row">
-                        <input type="checkbox" id="enableStateFeatures" onchange="toggleFilterInput('stateFeatures')">
-                        <label for="enableStateFeatures">State (multi-select):</label>
-                        <input type="text" id="filterStateFeatures" placeholder="e.g., Released,Done" disabled>
-                    </div>
-
-                    <div class="filter-row">
-                        <input type="checkbox" id="enableIncludeTagsFeatures" onchange="toggleFilterInput('includeTagsFeatures')">
-                        <label for="enableIncludeTagsFeatures">Include Tags (has ANY of these):</label>
-                        <input type="text" id="filterIncludeTagsFeatures" placeholder="e.g., Must Have, Critical (comma-separated)" disabled>
-                    </div>
-
-                    <div class="filter-row">
-                        <input type="checkbox" id="enableExcludeTagsFeatures" onchange="toggleFilterInput('excludeTagsFeatures')">
-                        <label for="enableExcludeTagsFeatures">Exclude Tags:</label>
-                        <input type="text" id="filterExcludeTagsFeatures" placeholder="e.g., Spawned, Not Ready (comma-separated)" disabled>
-                    </div>
-
-                    <div class="filter-row">
-                        <input type="checkbox" id="enableExcludeKeywordsFeatures" onchange="toggleFilterInput('excludeKeywordsFeatures')">
-                        <label for="enableExcludeKeywordsFeatures">Exclude Keywords (Title/Notes):</label>
-                        <input type="text" id="filterExcludeKeywordsFeatures" placeholder="e.g., Spike, Technical Analysis" disabled>
-                    </div>
-
-                    <div class="filter-row">
-                        <input type="checkbox" id="enableDiscloseFeatures" onchange="toggleFilterInput('discloseFeatures')">
-                        <label for="enableDiscloseFeatures">Disclose to Clients:</label>
-                        <select id="filterDiscloseFeatures" disabled>
-                            <option value="null">Null or not set</option>
-                            <option value="yes">Yes</option>
-                            <option value="no">No</option>
-                        </select>
-                    </div>
-
-                    <div class="filter-actions">
-                        <button onclick="applyFilters('features')" class="btn btn-primary">Apply Filters</button>
-                        <button onclick="clearAdvancedFilters('features')" class="btn btn-secondary">Clear Filters</button>
-                    </div>
-                </div>
-
-                <div id="featuresListWrapper" style="margin-top: 20px;">
-                    <div id="featuresList"></div>
-                </div>
+        <!-- Step 3 Card -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-8" id="step3Section" style="display: none;">
+            <div class="border-b border-gray-200 px-6 py-4">
+                <h2 class="text-xl font-semibold text-dark flex items-center">
+                    <span class="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold mr-3">3</span>
+                    Export or Generate Release Notes
+                </h2>
             </div>
-
-            <!-- BUGS TAB -->
-            <div id="bugsTab" class="tab-content">
-                <div class="section-header">
-                    <h3>Software Issues Resolved</h3>
-                </div>
-
-                <button onclick="toggleAdvancedFilters('bugs')" class="btn btn-secondary">Show Filters</button>
-
-                <div id="advancedFiltersBugs" class="advanced-filters" style="display: none;">
-                    <h3>Filters for Bugs (All filters use AND logic)</h3>
-
-                    <div style="background: #e8f4f8; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 13px;">
-                        <strong>💡 Tip:</strong> All filters (except Work Item Type) apply to descendant items up to 3 levels deep. Items with descendants will show a count of matching items.
-                    </div>
-
-                    <div class="filter-row">
-                        <input type="checkbox" id="enableTypeBugs" onchange="toggleFilterInput('typeBugs')">
-                        <label for="enableTypeBugs">Work Item Type:</label>
-                        <input type="text" id="filterTypeBugs" placeholder="e.g., Bug, Issue, Defect" disabled>
-                        <small style="color: #666; display: block; margin-top: 5px;">Filter by work item type</small>
-                    </div>
-
-                    <div class="filter-row">
-                        <input type="checkbox" id="enableStateBugs" onchange="toggleFilterInput('stateBugs')">
-                        <label for="enableStateBugs">State (multi-select):</label>
-                        <input type="text" id="filterStateBugs" placeholder="e.g., Resolved,Closed" disabled>
-                    </div>
-
-                    <div class="filter-row">
-                        <input type="checkbox" id="enableDiscloseBugs" onchange="toggleFilterInput('discloseBugs')">
-                        <label for="enableDiscloseBugs">Disclose to Clients:</label>
-                        <select id="filterDiscloseBugs" disabled>
-                            <option value="">All</option>
-                            <option value="yes">Yes</option>
-                            <option value="no">No</option>
-                            <option value="null">Null or not set</option>
-                        </select>
-                    </div>
-
-                    <div class="filter-row">
-                        <input type="checkbox" id="enableIncludeTagsBugs" onchange="toggleFilterInput('includeTagsBugs')">
-                        <label for="enableIncludeTagsBugs">Include Tags (has ANY of these):</label>
-                        <input type="text" id="filterIncludeTagsBugs" placeholder="e.g., Critical, Security (comma-separated)" disabled>
-                    </div>
-
-                    <div class="filter-row">
-                        <input type="checkbox" id="enableExcludeTagsBugs" onchange="toggleFilterInput('excludeTagsBugs')">
-                        <label for="enableExcludeTagsBugs">Exclude Tags:</label>
-                        <input type="text" id="filterExcludeTagsBugs" placeholder="e.g., Spawned, Wont Fix (comma-separated)" disabled>
-                    </div>
-
-                    <div class="filter-row">
-                        <input type="checkbox" id="enablePriorityBugs" onchange="toggleFilterInput('priorityBugs')">
-                        <label for="enablePriorityBugs">Priority:</label>
-                        <select id="filterPriorityBugs" disabled>
-                            <option value="">All Priorities</option>
-                            <option value="1">1 - Critical</option>
-                            <option value="2">2 - High</option>
-                            <option value="3">3 - Medium</option>
-                            <option value="4">4 - Low</option>
-                        </select>
-                    </div>
-
-                    <div class="filter-actions">
-                        <button onclick="applyFilters('bugs')" class="btn btn-primary">Apply Filters</button>
-                        <button onclick="clearAdvancedFilters('bugs')" class="btn btn-secondary">Clear Filters</button>
-                    </div>
-                </div>
-
-                <div id="bugsListWrapper" style="margin-top: 20px;">
-                    <div id="bugsList"></div>
-                </div>
-            </div>
-
-            <div class="action-buttons" style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #ddd;">
-                <h3>Step 3: Export or Generate Release Notes</h3>
-
-                <div style="background: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
-                    <h4 style="margin-top: 0;">Release Information</h4>
+            <div class="p-6">
+                <div class="bg-gray-50 border border-gray-200 p-6 rounded-lg mb-6">
+                    <h4 class="text-base font-semibold text-dark mb-4">Release Information</h4>
                     <div class="form-group">
                         <label for="releaseVersion">Release Version:</label>
-                        <input type="text" id="releaseVersion" placeholder="e.g., 8.5.0" style="width: 300px;">
+                        <input type="text" id="releaseVersion" placeholder="e.g., 8.5.0" class="max-w-xs">
                     </div>
                     <div class="form-group">
                         <label for="releaseDate">Release Date:</label>
-                        <input type="date" id="releaseDate" style="width: 300px;">
+                        <input type="date" id="releaseDate" class="max-w-xs">
                     </div>
                 </div>
 
-                <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                <div class="flex gap-4 flex-wrap">
                     <button onclick="generateReleaseNotes()" class="btn btn-primary">📝 Generate Release Notes</button>
                     <button onclick="exportForClaude()" class="btn btn-success">📥 Export for Claude Code</button>
                 </div>
+                <div id="exportStatus" class="mt-4"></div>
             </div>
-            <div id="exportStatus" style="margin-top: 15px;"></div>
+        </div>
 
-            <!-- WYSIWYG Editor Section -->
-            <div id="editorSection" style="display: none; margin-top: 30px; padding-top: 20px; border-top: 2px solid #ddd;">
-                <h3>Step 4: Review and Edit Release Notes</h3>
-                <p>Edit the content below, then click "Convert & Download Markdown" to export.</p>
-
-                <div style="margin: 20px 0;">
-                    <textarea id="releaseNotesEditor" style="width: 100%; height: 600px;"></textarea>
+        <!-- Step 4 Card - WYSIWYG Editor -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-8" id="editorSection" style="display: none;">
+            <div class="border-b border-gray-200 px-6 py-4">
+                <h2 class="text-xl font-semibold text-dark flex items-center">
+                    <span class="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold mr-3">4</span>
+                    Review and Edit Release Notes
+                </h2>
+                <p class="text-sm text-gray-600 mt-2">Edit the content below, then click "Convert & Download Markdown" to export.</p>
+            </div>
+            <div class="p-6">
+                <div class="mb-6">
+                    <textarea id="releaseNotesEditor" class="w-full" style="height: 600px;"></textarea>
                 </div>
 
-                <div style="display: flex; gap: 15px; margin-top: 15px;">
+                <div class="flex gap-4 flex-wrap">
                     <button onclick="convertAndDownload()" class="btn btn-primary">📥 Convert & Download Markdown</button>
-                    <button onclick="hideEditor()" class="btn">Cancel</button>
+                    <button onclick="hideEditor()" class="btn btn-secondary">Cancel</button>
                 </div>
             </div>
         </div>
@@ -416,6 +704,7 @@
                     }
 
                     document.getElementById('workitemsSection').style.display = 'block';
+                    document.getElementById('step3Section').style.display = 'block';
                 } else {
                     statusDiv.innerHTML = '<div class="error">No work items were fetched. Please check your Query IDs.<br>Check the browser console (F12) for detailed error information.</div>';
 
