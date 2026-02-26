@@ -8,6 +8,9 @@ workitems/
 # Generated release notes
 release_notes_*.md
 
+# Vendor directory (downloaded libraries)
+vendor/
+
 # OS files
 .DS_Store
 Thumbs.db

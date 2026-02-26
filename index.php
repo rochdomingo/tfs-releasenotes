@@ -71,6 +71,15 @@
                     <input type="text" id="bugsQueryId" name="bugsQueryId" placeholder="Enter TFS Query GUID for Bugs">
                     <small style="color: #666; display: block; margin-top: 5px;">Query should return Bug/Issue work items</small>
                 </div>
+                <div class="form-group">
+                    <label for="hierarchyDepth">Hierarchy Depth for Features:</label>
+                    <select id="hierarchyDepth" name="hierarchyDepth" style="width: 300px;">
+                        <option value="1">1 Level (Direct children only - fastest)</option>
+                        <option value="2" selected>2 Levels (Recommended)</option>
+                        <option value="3">3 Levels (Full hierarchy - slowest)</option>
+                    </select>
+                    <small style="color: #666; display: block; margin-top: 5px;">Controls how many levels of child items to fetch for features. Lower = faster.</small>
+                </div>
                 <div style="background: #fff3cd; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 13px; border: 1px solid #ffeaa7;">
                     <strong>Note:</strong> You can provide one or both query IDs. At least one is required.
                 </div>
@@ -236,11 +245,49 @@
             </div>
 
             <div class="action-buttons" style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #ddd;">
-                <button onclick="exportForClaude()" class="btn btn-success">📥 Export for Claude Code</button>
+                <h3>Step 3: Export or Generate Release Notes</h3>
+
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+                    <h4 style="margin-top: 0;">Release Information</h4>
+                    <div class="form-group">
+                        <label for="releaseVersion">Release Version:</label>
+                        <input type="text" id="releaseVersion" placeholder="e.g., 8.5.0" style="width: 300px;">
+                    </div>
+                    <div class="form-group">
+                        <label for="releaseDate">Release Date:</label>
+                        <input type="date" id="releaseDate" style="width: 300px;">
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                    <button onclick="generateReleaseNotes()" class="btn btn-primary">📝 Generate Release Notes</button>
+                    <button onclick="exportForClaude()" class="btn btn-success">📥 Export for Claude Code</button>
+                </div>
             </div>
             <div id="exportStatus" style="margin-top: 15px;"></div>
+
+            <!-- WYSIWYG Editor Section -->
+            <div id="editorSection" style="display: none; margin-top: 30px; padding-top: 20px; border-top: 2px solid #ddd;">
+                <h3>Step 4: Review and Edit Release Notes</h3>
+                <p>Edit the content below, then click "Convert & Download Markdown" to export.</p>
+
+                <div style="margin: 20px 0;">
+                    <textarea id="releaseNotesEditor" style="width: 100%; height: 600px;"></textarea>
+                </div>
+
+                <div style="display: flex; gap: 15px; margin-top: 15px;">
+                    <button onclick="convertAndDownload()" class="btn btn-primary">📥 Convert & Download Markdown</button>
+                    <button onclick="hideEditor()" class="btn">Cancel</button>
+                </div>
+            </div>
         </div>
     </div>
+
+    <!-- TinyMCE WYSIWYG Editor -->
+    <script src="https://cdn.tiny.cloud/1/g9n8w7viyagtdgg9dlo0qwv3e8qagg53k3onnow7vll0mclo/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+
+    <!-- Turndown for HTML to Markdown conversion -->
+    <script src="https://unpkg.com/turndown/dist/turndown.js"></script>
 
     <script>
         let workitemsData = [];
@@ -252,6 +299,7 @@
             e.preventDefault();
             const featuresQueryId = document.getElementById('featuresQueryId').value.trim();
             const bugsQueryId = document.getElementById('bugsQueryId').value.trim();
+            const hierarchyDepth = parseInt(document.getElementById('hierarchyDepth').value) || 2;
             const statusDiv = document.getElementById('fetchStatus');
 
             // Validate that at least one query ID is provided
@@ -266,46 +314,65 @@
                 let allWorkItems = [];
                 let featuresCount = 0;
                 let bugsCount = 0;
+                let featuresResult;
+                let bugsResult;
 
                 // Fetch from Features query if provided
                 if (featuresQueryId) {
-                    statusDiv.innerHTML = '<div class="loading">Fetching Features from TFS...</div>';
+                    statusDiv.innerHTML = `<div class="loading">Fetching Features from TFS (${hierarchyDepth} level${hierarchyDepth > 1 ? 's' : ''} deep)...</div>`;
                     const featuresResponse = await fetch('fetch_workitems.php', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify({ queryId: featuresQueryId, queryType: 'features' })
+                        body: JSON.stringify({ queryId: featuresQueryId, queryType: 'features', hierarchyDepth: hierarchyDepth })
                     });
 
-                    const featuresResult = await featuresResponse.json();
+                    featuresResult = await featuresResponse.json();
 
                     if (featuresResult.success) {
                         allWorkItems = allWorkItems.concat(featuresResult.workitems);
                         featuresCount = featuresResult.workitems.length;
+
+                        // Display progress information
+                        if (featuresResult.progress) {
+                            const lastProgress = featuresResult.progress[featuresResult.progress.length - 1];
+                            statusDiv.innerHTML = `<div class="loading">✅ Features: ${featuresCount} items (${featuresResult.totalTime}s)</div>`;
+                        }
                     } else {
                         statusDiv.innerHTML += `<div class="error">Features Query Error: ${featuresResult.error}</div>`;
+                        if (featuresResult.progress) {
+                            console.error('Features fetch progress before error:', featuresResult.progress);
+                        }
                     }
                 }
 
                 // Fetch from Bugs query if provided
                 if (bugsQueryId) {
-                    statusDiv.innerHTML = '<div class="loading">Fetching Bugs from TFS...</div>';
+                    statusDiv.innerHTML = '<div class="loading">Fetching Bugs from TFS (1 level deep)...</div>';
                     const bugsResponse = await fetch('fetch_workitems.php', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify({ queryId: bugsQueryId, queryType: 'bugs' })
+                        body: JSON.stringify({ queryId: bugsQueryId, queryType: 'bugs', hierarchyDepth: 1 })
                     });
 
-                    const bugsResult = await bugsResponse.json();
+                    bugsResult = await bugsResponse.json();
 
                     if (bugsResult.success) {
                         allWorkItems = allWorkItems.concat(bugsResult.workitems);
                         bugsCount = bugsResult.workitems.length;
+
+                        // Display progress information
+                        if (bugsResult.progress) {
+                            statusDiv.innerHTML += `<div class="loading">✅ Bugs: ${bugsCount} items (${bugsResult.totalTime}s)</div>`;
+                        }
                     } else {
                         statusDiv.innerHTML += `<div class="error">Bugs Query Error: ${bugsResult.error}</div>`;
+                        if (bugsResult.progress) {
+                            console.error('Bugs fetch progress before error:', bugsResult.progress);
+                        }
                     }
                 }
 
@@ -316,10 +383,40 @@
                     applyFilters('features');
                     applyFilters('bugs');
 
-                    statusDiv.innerHTML = `<div class="success">✅ Successfully fetched ${allWorkItems.length} work items!<br>📊 Features: ${featuresCount} | Bugs: ${bugsCount}</div>`;
+                    // Calculate total time
+                    let timingInfo = '';
+                    if (featuresResult && featuresResult.totalTime) {
+                        timingInfo += `Features: ${featuresResult.totalTime}s`;
+                    }
+                    if (bugsResult && bugsResult.totalTime) {
+                        if (timingInfo) timingInfo += ' | ';
+                        timingInfo += `Bugs: ${bugsResult.totalTime}s`;
+                    }
+
+                    statusDiv.innerHTML = `<div class="success">✅ Successfully fetched ${allWorkItems.length} work items!<br>📊 Features: ${featuresCount} | Bugs: ${bugsCount}${timingInfo ? '<br>⏱️ ' + timingInfo : ''}</div>`;
+
+                    // Log detailed progress to console for debugging
+                    if (window.console) {
+                        if (featuresResult && featuresResult.progress) {
+                            console.log('Features fetch progress:', featuresResult.progress);
+                        }
+                        if (bugsResult && bugsResult.progress) {
+                            console.log('Bugs fetch progress:', bugsResult.progress);
+                        }
+                    }
+
                     document.getElementById('workitemsSection').style.display = 'block';
                 } else {
-                    statusDiv.innerHTML = '<div class="error">No work items were fetched. Please check your Query IDs.</div>';
+                    statusDiv.innerHTML = '<div class="error">No work items were fetched. Please check your Query IDs.<br>Check the browser console (F12) for detailed error information.</div>';
+
+                    // Log debug information
+                    console.error('No work items fetched. Debug info:');
+                    if (featuresQueryId && featuresResult) {
+                        console.error('Features result:', featuresResult);
+                    }
+                    if (bugsQueryId && bugsResult) {
+                        console.error('Bugs result:', bugsResult);
+                    }
                 }
             } catch (error) {
                 statusDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
@@ -730,6 +827,190 @@
                 }
             } catch (error) {
                 statusDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+
+        async function generateReleaseNotes() {
+            const statusDiv = document.getElementById('exportStatus');
+            statusDiv.innerHTML = '<div class="loading">Generating release notes...</div>';
+
+            // Get release information
+            const releaseVersion = document.getElementById('releaseVersion').value.trim() || 'Version TBD';
+            const releaseDateInput = document.getElementById('releaseDate').value;
+            const releaseDate = releaseDateInput ? new Date(releaseDateInput).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+            // Get selected features
+            const selectedFeatureIds = Array.from(document.querySelectorAll('.workitem-checkbox.featuresList:checked'))
+                .map(cb => cb.dataset.id);
+            const selectedFeatures = filteredFeatures.filter(item => selectedFeatureIds.includes(String(item.id)));
+
+            // Get selected bugs
+            const selectedBugIds = Array.from(document.querySelectorAll('.workitem-checkbox.bugsList:checked'))
+                .map(cb => cb.dataset.id);
+            const selectedBugs = filteredBugs.filter(item => selectedBugIds.includes(String(item.id)));
+
+            if (selectedFeatures.length === 0 && selectedBugs.length === 0) {
+                statusDiv.innerHTML = '<div class="error">Please select at least one work item to generate release notes.</div>';
+                return;
+            }
+
+            try {
+                const response = await fetch('generate_release_notes.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        features: selectedFeatures,
+                        bugs: selectedBugs,
+                        releaseVersion: releaseVersion,
+                        releaseDate: releaseDate
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Fetch the markdown file content
+                    const fileResponse = await fetch('exports/' + result.filename);
+                    const fileContent = await fileResponse.text();
+
+                    // Store filename for later download
+                    window.currentReleaseFilename = result.filename;
+
+                    // Load content into TinyMCE editor
+                    tinymce.get('releaseNotesEditor').setContent(fileContent);
+
+                    // Show editor section
+                    document.getElementById('editorSection').style.display = 'block';
+
+                    // Scroll to editor
+                    document.getElementById('editorSection').scrollIntoView({ behavior: 'smooth' });
+
+                    statusDiv.innerHTML = `<div class="success">✅ Release notes loaded into editor!<br>📊 Features: ${selectedFeatures.length} | Bugs: ${selectedBugs.length}<br><small>Review and edit the content below, then click "Convert & Download Markdown"</small></div>`;
+                } else {
+                    statusDiv.innerHTML = `<div class="error">Error: ${result.error}</div>`;
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+
+        // Initialize: Set today's date as default
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('releaseDate').value = today;
+
+            // Initialize TinyMCE
+            tinymce.init({
+                selector: '#releaseNotesEditor',
+                height: 600,
+                menubar: true,
+                plugins: [
+                    'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+                    'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+                    'insertdatetime', 'media', 'table', 'help', 'wordcount'
+                ],
+                toolbar: 'undo redo | blocks | ' +
+                    'bold italic forecolor | alignleft aligncenter ' +
+                    'alignright alignjustify | bullist numlist outdent indent | ' +
+                    'removeformat | code | help',
+                content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif; font-size: 14px; } img { max-width: 100%; height: auto; }',
+
+                // Allow all HTML elements and attributes (preserves images from TFS)
+                valid_elements: '*[*]',
+                extended_valid_elements: '*[*]',
+
+                // Don't convert URLs - keep them as-is
+                relative_urls: false,
+                remove_script_host: false,
+                convert_urls: false,
+
+                // Allow pasting images
+                paste_data_images: true
+            });
+        });
+
+        // Hide the editor section
+        function hideEditor() {
+            document.getElementById('editorSection').style.display = 'none';
+            document.getElementById('exportStatus').innerHTML = '';
+        }
+
+        // Convert HTML to Markdown and download
+        function convertAndDownload() {
+            try {
+                // Get content from TinyMCE
+                const htmlContent = tinymce.get('releaseNotesEditor').getContent();
+
+                // Initialize Turndown
+                const turndownService = new TurndownService({
+                    headingStyle: 'atx',
+                    hr: '---',
+                    bulletListMarker: '-',
+                    codeBlockStyle: 'fenced',
+                    emDelimiter: '_'
+                });
+
+                // Custom rule to preserve work item links
+                turndownService.addRule('preserveWorkItemLinks', {
+                    filter: function (node) {
+                        return node.nodeName === 'EM' && node.textContent.includes('Work Item:');
+                    },
+                    replacement: function (content) {
+                        return content; // Keep as-is
+                    }
+                });
+
+                // Convert HTML to Markdown
+                let markdown = turndownService.turndown(htmlContent);
+
+                // Replace proxy image URLs with original TFS URLs
+                // Pattern 1: In markdown syntax ![alt](image_proxy.php?url=ENCODED_URL)
+                markdown = markdown.replace(/image_proxy\.php\?url=([^)\s&]+)/g, function(match, encodedUrl) {
+                    try {
+                        return decodeURIComponent(encodedUrl);
+                    } catch (e) {
+                        return encodedUrl; // If decode fails, return as-is
+                    }
+                });
+
+                // Pattern 2: In HTML img tags (if any remain)
+                markdown = markdown.replace(/<img([^>]*?)src=["']image_proxy\.php\?url=([^"']+)["']([^>]*?)>/gi, function(match, before, encodedUrl, after) {
+                    try {
+                        const originalUrl = decodeURIComponent(encodedUrl);
+                        return '<img' + before + 'src="' + originalUrl + '"' + after + '>';
+                    } catch (e) {
+                        return match; // If decode fails, return original
+                    }
+                });
+
+                // Create filename with timestamp
+                const timestamp = new Date().toISOString().split('T')[0].replace(/-/g, '-');
+                const filename = window.currentReleaseFilename || `release_notes_${timestamp}.md`;
+
+                // Download the file
+                const blob = new Blob([markdown], { type: 'text/markdown' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                // Show success message
+                document.getElementById('exportStatus').innerHTML = '<div class="success">✅ Markdown file downloaded successfully!</div>';
+
+                // Hide editor after a short delay
+                setTimeout(() => {
+                    hideEditor();
+                }, 2000);
+
+            } catch (error) {
+                document.getElementById('exportStatus').innerHTML = `<div class="error">Error converting to Markdown: ${error.message}</div>`;
+                console.error('Conversion error:', error);
             }
         }
     </script>

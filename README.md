@@ -6,6 +6,7 @@ A web-based tool for fetching work items from Azure DevOps (TFS) and generating 
 
 - Fetch work items from TFS using query IDs
 - Filter features and bugs with advanced criteria
+- **Generate release notes directly in the application** (Markdown format)
 - Export data in a format optimized for Claude Code processing
 - Generate comprehensive release notes following the Cobra format
 
@@ -13,6 +14,7 @@ A web-based tool for fetching work items from Azure DevOps (TFS) and generating 
 
 - **index.php** - Main web interface for fetching and filtering work items
 - **fetch_workitems.php** - Backend script for fetching work items from TFS
+- **generate_release_notes.php** - Backend script for generating Markdown release notes
 - **export_for_claude_slim.php** - Backend script for exporting filtered work items
 - **styles.css** - Stylesheet for the web interface
 - **CLAUDE.md** - Instructions for Claude Code to generate release notes
@@ -49,14 +51,28 @@ A web-based tool for fetching work items from Azure DevOps (TFS) and generating 
    - Disclose to Clients flag
    - Priority (for bugs)
 
-### Step 3: Export for Claude Code
-1. Select the work items you want to include
-2. Click "Export for Claude Code"
-3. A JSON file will be downloaded
+### Step 3: Export or Generate Release Notes
 
-### Step 4: Generate Release Notes with Claude Code
-1. Open the exported JSON file in Claude Code
-2. Claude will use the instructions in `CLAUDE.md` to generate properly formatted release notes
+You have two options for generating release notes:
+
+#### Option A: Generate Release Notes Directly (Recommended)
+1. Enter Release Version (e.g., "8.5.0")
+2. Select Release Date (defaults to today)
+3. Select the work items you want to include
+4. Click "📝 Generate Release Notes"
+5. A Markdown (.md) file will be downloaded with:
+   - New Features and Enhancements
+   - Software Issues Resolved
+   - Security Enhancements
+   - Database Changes
+   - Data Changes
+
+#### Option B: Export for Claude Code
+1. Select the work items you want to include
+2. Click "📥 Export for Claude Code"
+3. A JSON file will be downloaded
+4. Open the exported JSON file in Claude Code
+5. Claude will use the instructions in `CLAUDE.md` to generate properly formatted release notes
 
 ## Requirements
 

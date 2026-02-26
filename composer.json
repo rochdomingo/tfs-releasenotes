@@ -1,0 +1,16 @@
+{
+    "name": "deltek/tfs-release-notes",
+    "description": "TFS Release Notes Generator for Cobra",
+    "type": "project",
+    "require": {
+        "php": ">=7.4",
+        "league/html-to-markdown": "^5.1"
+    },
+    "autoload": {
+        "classmap": [
+            "generate_release_notes.php",
+            "fetch_workitems.php",
+            "export_for_claude_slim.php"
+        ]
+    }
+}

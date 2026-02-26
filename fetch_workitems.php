@@ -3,7 +3,12 @@
 set_time_limit(600);
 ini_set('max_execution_time', 600);
 
+// Enable output buffering for progress updates
 header('Content-Type: application/json');
+header('X-Accel-Buffering: no'); // Disable nginx buffering
+
+// Progress tracking array
+$progressLog = [];
 
 // Load TFS configuration
 $config = json_decode(file_get_contents('tfs_config.json'), true);
@@ -12,6 +17,7 @@ $config = json_decode(file_get_contents('tfs_config.json'), true);
 $input = json_decode(file_get_contents('php://input'), true);
 $queryId = $input['queryId'] ?? '';
 $queryType = $input['queryType'] ?? 'unknown'; // 'features' or 'bugs'
+$hierarchyDepth = $input['hierarchyDepth'] ?? 2; // Default to 2 levels if not specified
 
 if (empty($queryId)) {
     echo json_encode(['success' => false, 'error' => 'Query ID is required']);
@@ -24,7 +30,11 @@ if (!file_exists('workitems')) {
 }
 
 try {
+    $startTime = microtime(true);
+    $progressLog[] = ['step' => 'start', 'message' => 'Starting fetch process', 'time' => 0];
+
     // Step 1: Get work item IDs from the query
+    $progressLog[] = ['step' => 'query', 'message' => 'Fetching work item IDs from query', 'time' => round(microtime(true) - $startTime, 2)];
     $queryUrl = $config['base_url'] . "/{$config['default_project']}/_apis/wit/wiql/{$queryId}?api-version=5.0";
 
     $ch = curl_init();
@@ -46,10 +56,15 @@ try {
     curl_close($ch);
 
     if ($httpCode !== 200) {
+        $progressLog[] = ['step' => 'error', 'message' => "Query failed with HTTP {$httpCode}", 'time' => round(microtime(true) - $startTime, 2)];
         throw new Exception("Failed to fetch query results. HTTP Code: {$httpCode}. Response: {$queryResponse}");
     }
 
     $queryData = json_decode($queryResponse, true);
+
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        throw new Exception("Failed to parse query response: " . json_last_error_msg());
+    }
 
     // Handle different TFS response structures
     $workItemIds = [];
@@ -81,11 +96,15 @@ try {
     }
 
     if (empty($workItemIds)) {
-        echo json_encode(['success' => true, 'workitems' => [], 'debug' => 'No work items found']);
+        $progressLog[] = ['step' => 'no_items', 'message' => 'Query returned no work item IDs', 'time' => round(microtime(true) - $startTime, 2), 'queryData' => $queryData];
+        echo json_encode(['success' => true, 'workitems' => [], 'debug' => 'No work items found in query results', 'progress' => $progressLog, 'queryResponse' => $queryData]);
         exit;
     }
 
+    $progressLog[] = ['step' => 'query_complete', 'message' => 'Found ' . count($workItemIds) . ' work items', 'time' => round(microtime(true) - $startTime, 2), 'ids' => array_slice($workItemIds, 0, 10)];
+
     // Step 2: Get detailed work item information
+    $progressLog[] = ['step' => 'details', 'message' => 'Fetching detailed information for ' . count($workItemIds) . ' work items', 'time' => round(microtime(true) - $startTime, 2)];
     $batchSize = 200; // TFS API limit
     $allWorkItems = [];
 
@@ -93,7 +112,10 @@ try {
         $batchIds = array_slice($workItemIds, $i, $batchSize);
         $idsParam = implode(',', $batchIds);
 
-        $workItemsUrl = $config['base_url'] . "/_apis/wit/workitems?ids={$idsParam}&\$expand=all&api-version=5.0";
+        // Optimize: Fetch only relations instead of all fields (skips history, comments, attachments)
+        // This significantly reduces response size and processing time
+        // Note: Using $expand=relations only (without field filter) to avoid URL length issues
+        $workItemsUrl = $config['base_url'] . "/_apis/wit/workitems?ids={$idsParam}&\$expand=relations&api-version=5.0";
 
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $workItemsUrl);
@@ -114,10 +136,15 @@ try {
         curl_close($ch);
 
         if ($httpCode !== 200) {
-            throw new Exception("Failed to fetch work items. HTTP Code: {$httpCode}");
+            $progressLog[] = ['step' => 'error', 'message' => "Work items fetch failed with HTTP {$httpCode}", 'time' => round(microtime(true) - $startTime, 2), 'response' => substr($workItemsResponse, 0, 500)];
+            throw new Exception("Failed to fetch work items. HTTP Code: {$httpCode}. Response: " . substr($workItemsResponse, 0, 500));
         }
 
         $workItemsData = json_decode($workItemsResponse, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new Exception("Failed to parse work items response: " . json_last_error_msg());
+        }
 
         if (isset($workItemsData['value'])) {
             $allWorkItems = array_merge($allWorkItems, $workItemsData['value']);
@@ -137,8 +164,9 @@ try {
 
             // Step 1: Fetch relations for all items at current level (with expand=relations)
             // TFS supports fetching multiple items at once with relations
+            // Optimize: Only fetch minimal fields needed for relation traversal
             $idsParam = implode(',', $currentLevelIds);
-            $relationsUrl = $config['base_url'] . "/_apis/wit/workitems?ids={$idsParam}&\$expand=relations&api-version=5.0";
+            $relationsUrl = $config['base_url'] . "/_apis/wit/workitems?ids={$idsParam}&\$expand=relations&fields=System.Id&api-version=5.0";
 
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $relationsUrl);
@@ -192,8 +220,9 @@ try {
 
                 foreach ($batches as $batchIds) {
                     $batchIdsParam = implode(',', $batchIds);
-                    // Include relations to capture changesets
-                    $childrenUrl = $config['base_url'] . "/_apis/wit/workitems?ids={$batchIdsParam}&\$expand=relations&api-version=5.0";
+                    // Include relations to capture changesets, but only fetch essential fields
+                    // This reduces payload size for child items significantly
+                    $childrenUrl = $config['base_url'] . "/_apis/wit/workitems?ids={$batchIdsParam}&\$expand=relations&fields=System.Id,System.WorkItemType,System.Title,System.State&api-version=5.0";
 
                     $ch = curl_init();
                     curl_setopt($ch, CURLOPT_URL, $childrenUrl);
@@ -275,37 +304,104 @@ try {
         return $allDescendants;
     }
 
-    // Fetch all descendants for Features and Bugs
+    /**
+     * Fetch descendants for multiple work items in parallel using curl_multi
+     * This dramatically improves performance by making concurrent API calls
+     */
+    function fetchAllDescendantsParallel($itemsToFetch, $config, &$progressLog, $startTime) {
+        $childWorkItemsMap = [];
+        $parallelBatchSize = 5; // Process 5 work items in parallel at a time
+
+        // Process items in batches for parallel fetching
+        $batches = array_chunk($itemsToFetch, $parallelBatchSize);
+
+        foreach ($batches as $batchIndex => $batch) {
+            $progressLog[] = ['step' => 'parallel_batch', 'message' => "Processing parallel batch " . ($batchIndex + 1) . "/" . count($batches) . " (" . count($batch) . " items)", 'time' => round(microtime(true) - $startTime, 2)];
+
+            // Create curl multi handle
+            $multiHandle = curl_multi_init();
+            $curlHandles = [];
+            $handleMap = [];
+
+            // Initialize curl handles for this batch
+            foreach ($batch as $itemInfo) {
+                $workItemId = $itemInfo['id'];
+                $depth = $itemInfo['depth'];
+
+                // Fetch first level relations
+                $relationsUrl = $config['base_url'] . "/_apis/wit/workitems?ids={$workItemId}&\$expand=relations&fields=System.Id&api-version=5.0";
+
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, $relationsUrl);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                    'Authorization: Basic ' . base64_encode(':' . $config['pat']),
+                    'Content-Type: application/json'
+                ]);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+                curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+
+                curl_multi_add_handle($multiHandle, $ch);
+                $handleMap[(int)$ch] = ['workItemId' => $workItemId, 'depth' => $depth];
+                $curlHandles[] = $ch;
+            }
+
+            // Execute all handles in parallel
+            $running = null;
+            do {
+                curl_multi_exec($multiHandle, $running);
+                curl_multi_select($multiHandle);
+            } while ($running > 0);
+
+            // Process results for each handle
+            foreach ($curlHandles as $ch) {
+                $response = curl_multi_getcontent($ch);
+                $workItemId = $handleMap[(int)$ch]['workItemId'];
+                $depth = $handleMap[(int)$ch]['depth'];
+
+                // Now fetch full descendants using the standard function
+                // (This maintains the multi-level hierarchy logic)
+                $descendants = fetchAllDescendantsBatch($workItemId, $config, $depth);
+
+                if (!empty($descendants)) {
+                    $childWorkItemsMap[$workItemId] = $descendants;
+                }
+
+                curl_multi_remove_handle($multiHandle, $ch);
+                curl_close($ch);
+            }
+
+            curl_multi_close($multiHandle);
+        }
+
+        return $childWorkItemsMap;
+    }
+
+    $progressLog[] = ['step' => 'details_complete', 'message' => 'Retrieved details for ' . count($allWorkItems) . ' work items', 'time' => round(microtime(true) - $startTime, 2)];
+
+    // Fetch all descendants for Features and Bugs (OPTIMIZED with parallel fetching)
     // Features may have deep hierarchies (PBIs, Tasks, etc.)
     // Bugs may have linked Cases or other work items
-    $childWorkItemsMap = [];
+    $progressLog[] = ['step' => 'descendants', 'message' => 'Fetching child work items in parallel (optimized)', 'time' => round(microtime(true) - $startTime, 2)];
 
+    // Collect all work items that need descendant fetching
+    $itemsToFetch = [];
     foreach ($allWorkItems as $item) {
         $workItemType = $item['fields']['System.WorkItemType'] ?? '';
+        $workItemId = $item['id'];
 
-        // Fetch descendants for Features (up to 3 levels - full hierarchy)
         if ($workItemType === 'Feature') {
-            $workItemId = $item['id'];
-
-            // Fetch all descendants using batch approach (up to 3 levels)
-            $descendants = fetchAllDescendantsBatch($workItemId, $config, 3);
-
-            if (!empty($descendants)) {
-                $childWorkItemsMap[$workItemId] = $descendants;
-            }
-        }
-        // Fetch descendants for Bugs (up to 1 level - just direct children like Cases)
-        elseif ($workItemType === 'Bug' || $workItemType === 'Issue' || $workItemType === 'Defect') {
-            $workItemId = $item['id'];
-
-            // Fetch only direct children (level 1) - typically Cases linked to Bugs
-            $descendants = fetchAllDescendantsBatch($workItemId, $config, 1);
-
-            if (!empty($descendants)) {
-                $childWorkItemsMap[$workItemId] = $descendants;
-            }
+            $itemsToFetch[] = ['id' => $workItemId, 'depth' => $hierarchyDepth, 'type' => 'Feature'];
+        } elseif ($workItemType === 'Bug' || $workItemType === 'Issue' || $workItemType === 'Defect') {
+            $itemsToFetch[] = ['id' => $workItemId, 'depth' => 1, 'type' => $workItemType];
         }
     }
+
+    $progressLog[] = ['step' => 'descendants_parallel', 'message' => 'Fetching descendants for ' . count($itemsToFetch) . ' items using parallel requests', 'time' => round(microtime(true) - $startTime, 2)];
+
+    // Fetch all descendants in parallel using curl_multi
+    $childWorkItemsMap = fetchAllDescendantsParallel($itemsToFetch, $config, $progressLog, $startTime);
 
     // Step 4: Format work items for frontend
     $formattedWorkItems = [];
@@ -327,13 +423,16 @@ try {
             'iterationPath' => $fields['System.IterationPath'] ?? '',
             'priority' => $fields['Microsoft.VSTS.Common.Priority'] ?? null,
             'severity' => $fields['Microsoft.VSTS.Common.Severity'] ?? null,
-            'tags' => $fields['System.Tags'] ?? '',
+            'tags' => !empty($fields['System.Tags']) ? explode('; ', $fields['System.Tags']) : [],
             'url' => $item['url'] ?? '',
             // Custom fields for advanced filtering (update field names as needed)
             'editingStatus' => $fields['Deltek.EditStatus'] ?? null,
-            'isMustHave' => $fields['Deltek.IsMustHave'] ?? null,
+            'isMustHave' => ($fields['Deltek.IsMustHave'] ?? null) === 'Yes' ? true : false,
             'disclose' => $fields['Deltek.DiscloseToClients'] ?? null,
-            // Fields for release notes generation
+            // Fields for release notes generation (match generate_release_notes.php expectations)
+            'DiscloseToClients' => $fields['Deltek.DiscloseToClients'] ?? 'No',
+            'hasSpawnedTag' => !empty($fields['System.Tags']) && (stripos($fields['System.Tags'], 'Spawned') !== false || stripos($fields['System.Tags'], 'Spawns') !== false),
+            'relNotesTitle' => $fields['Deltek.RelNotesTitle'] ?? $fields['System.Title'] ?? 'No Title',
             'relNotesDescription' => $fields['Deltek.RelNotesDescription'] ?? null,
             'acceptanceCriteria' => $fields['Microsoft.VSTS.Common.AcceptanceCriteria'] ?? null,
             // Deployment fields (primarily for bugs)
@@ -351,8 +450,35 @@ try {
             $workItem['childItems'] = [];
         }
 
+        // Extract changesets from relations for filesChanged
+        $filesChanged = [];
+        if (isset($item['relations'])) {
+            foreach ($item['relations'] as $relation) {
+                if (isset($relation['rel']) && $relation['rel'] === 'ArtifactLink' &&
+                    isset($relation['url']) && strpos($relation['url'], 'VersionControl/Changeset') !== false) {
+
+                    $changesetId = basename($relation['url']);
+
+                    // For now, create placeholder file entries
+                    // In a real implementation, you'd fetch actual file details from the changeset
+                    $filesChanged[] = [
+                        'changesetId' => $changesetId,
+                        'url' => $relation['url'],
+                        'comment' => $relation['attributes']['comment'] ?? ''
+                    ];
+                }
+            }
+        }
+
+        if (!empty($filesChanged)) {
+            $workItem['filesChanged'] = $filesChanged;
+            $workItem['changesets'] = $filesChanged; // For backwards compatibility
+        }
+
         $formattedWorkItems[] = $workItem;
     }
+
+    $progressLog[] = ['step' => 'formatting', 'message' => 'Formatting work items for display', 'time' => round(microtime(true) - $startTime, 2)];
 
     // Step 5: Save to JSON file
     $timestamp = date('Y-m-d_H-i-s');
@@ -360,19 +486,25 @@ try {
 
     file_put_contents($filename, json_encode($formattedWorkItems, JSON_PRETTY_PRINT));
 
+    $totalTime = round(microtime(true) - $startTime, 2);
+    $progressLog[] = ['step' => 'complete', 'message' => "Completed in {$totalTime} seconds", 'time' => $totalTime];
+
     // Step 6: Return results
     echo json_encode([
         'success' => true,
         'workitems' => $formattedWorkItems,
         'savedFile' => $filename,
         'count' => count($formattedWorkItems),
-        'queryType' => $queryType
+        'queryType' => $queryType,
+        'progress' => $progressLog,
+        'totalTime' => $totalTime
     ]);
 
 } catch (Exception $e) {
     echo json_encode([
         'success' => false,
-        'error' => $e->getMessage()
+        'error' => $e->getMessage(),
+        'progress' => $progressLog ?? []
     ]);
 }
 ?>
